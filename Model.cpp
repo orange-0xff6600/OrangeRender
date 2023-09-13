@@ -1,6 +1,7 @@
 #include "Model.hpp"
 #include <fstream>
 #include <sstream>
+#include <stdexcept>
 
 namespace Orange
 {
@@ -9,7 +10,7 @@ Model::Model(const char *filename)
 {
     std::ifstream ifs;
     ifs.open(filename, std::ifstream::in);
-    if(ifs.fail()) return;
+    if(ifs.fail()) throw std::runtime_error("File not found!");
     std::string line;
     while (!ifs.eof())          
     {           
