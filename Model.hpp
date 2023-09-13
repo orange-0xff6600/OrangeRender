@@ -16,9 +16,10 @@ public:
     Model(const std::string &filename) : Model(filename.c_str()) {}
 
     std::vector<Vec3f> Vertices() const;
-    size_t VertNum() const;
+    std::vector<std::vector<int>> Faces() const;
 private:
     std::vector<Vec3f> vertices; 
+    std::vector<std::vector<int>> faces;
 };
 
 } 

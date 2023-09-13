@@ -14,7 +14,7 @@ Model::Model(const char *filename)
     while (!ifs.eof())          
     {           
         std::getline(ifs, line);
-        std::istringstream iss(line.c_str());
+        std::istringstream iss(line);
         char trash;
         if(!line.compare(0, 2, "v "))
         {
@@ -23,6 +23,18 @@ Model::Model(const char *filename)
             for(int i=0; i<3; ++i)
                 iss >> v.Raw[i];
             vertices.push_back(v);
+        }
+        else if(!line.compare(0, 2, "f "))
+        {
+            std::vector<int> f;
+            int itrash, idx;
+            iss >> trash;
+            while (iss >> idx >> trash >> itrash >> trash >> itrash)
+            {
+                idx--; // (1,n) => (0, n-1)
+                f.push_back(idx);
+            }
+            faces.push_back(f);
         }
     }
     ifs.close();
@@ -33,9 +45,10 @@ std::vector<Vec3f> Model::Vertices() const
     return this->vertices;
 }
 
-size_t Model::VertNum() const
+std::vector<std::vector<int>> Model::Faces() const
 {
-    return vertices.size();
+    return this->faces;
 }
+
 
 }
