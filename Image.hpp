@@ -54,6 +54,8 @@ namespace Orange
         Color& GetColor(int x, int y) { return pixels[y][x]; }
         void SetColor(int x, int y, const Color& c) { pixels[y][x] = c; }
 
+        void FlipVertical();
+
         void Save(const std::string& path);
 
         friend std::ostream& operator<<(std::ostream& os, const Image& image);

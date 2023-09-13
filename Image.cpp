@@ -71,6 +71,19 @@ namespace Orange
         return *this;
     }
 
+    void Image::FlipVertical()
+    {
+        std::size_t BytesPerLine = width * sizeof(Color);
+        Color *line = new Color[width];
+        int half = height / 2;
+        for(int i=0; i<half; ++i)
+        {
+            memmove(line, pixels[i], BytesPerLine);
+            memmove(pixels[i], pixels[height-1-i], BytesPerLine);
+            memmove(pixels[height-1-i], line, BytesPerLine);
+        }
+    }
+
     void Image::Save(const std::string& path)
     {
         std::ofstream file;
