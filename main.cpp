@@ -6,8 +6,8 @@
 #include <array>
 #include <vector>
 
-const int width = 200;
-const int height = 200;
+const int width = 800;
+const int height = 800;
 
 char *modelPath{nullptr};
 char *outputPath{nullptr};
@@ -16,6 +16,7 @@ enum class RenderMode
 {
     PointCloud,
     WireFrame,
+    Fill,
 };
 
 RenderMode renderMode{RenderMode::WireFrame};
@@ -110,6 +111,10 @@ int argv_process(int argc, char** argv)
         {
             renderMode = RenderMode::WireFrame;
         }
+        else if(!strcmp(argv[i], "-f"))
+        {
+            renderMode = RenderMode::Fill;
+        }
         else if(!strcmp(argv[i], "-h"))
         {
             puts("Usage: render -m [model_path] -o [output_path] <other_args>...");
@@ -133,54 +138,60 @@ int argv_process(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-    // argv_process(argc, argv);
+    argv_process(argc, argv);
     
-    // Orange::Model model(modelPath);
-    // std::vector<std::vector<int>> faces = model.Faces();
-    // std::vector<Orange::Vec3f> vertices = model.Vertices();
+    Orange::Model model(modelPath);
+    std::vector<std::vector<int>> faces = model.Faces();
+    std::vector<Orange::Vec3f> vertices = model.Vertices();
     
     Orange::Image image(width, height, Orange::Color::Black());
 
-    // switch (renderMode)
-    // {   
-    // case RenderMode::PointCloud:
-    //     for(int i=0; i<vertices.size(); ++i)
-    //     {
-    //         int x = ((vertices[i].X + 1) / 2 ) * (width-1);
-    //         int y = ((vertices[i].Y + 1) / 2 ) * (height-1);
-    //         image.SetColor(x, y, Orange::Color::White());
-    //     }
-    //     break;
-    // case RenderMode::WireFrame:
-    //     for(int i=0; i<faces.size(); ++i)
-    //     {
-    //         std::vector<int> face = faces[i];
-    //         for(int j=0; j<3; ++j)
-    //         {
-    //             Orange::Vec3f v0 = vertices[face[j]];
-    //             Orange::Vec3f v1 = vertices[face[(j+1)%3]];
-    //             int x0 = ((v0.X+1)/2)*(width-1);
-    //             int y0 = ((v0.Y+1)/2)*(height-1);
-    //             int x1 = ((v1.X+1)/2)*(width-1);
-    //             int y1 = ((v1.Y+1)/2)*(height-1);
-    //             line(x0, y0, x1, y1, image, Orange::Color::White());
-    //         }
-    //     }
-    //     break;
-    // default:
-    //     break;
-    // }  
-
-    Orange::Vec2i t0[3] = {Orange::Vec2i(10, 70), Orange::Vec2i(50, 160), Orange::Vec2i(70, 80)}; 
-    Orange::Vec2i t1[3] = {Orange::Vec2i(180, 50), Orange::Vec2i(150, 1), Orange::Vec2i(70, 180)}; 
-    Orange::Vec2i t2[3] = {Orange::Vec2i(180, 150), Orange::Vec2i(120, 160), Orange::Vec2i(130, 180)};
-
-    triangle(t0[0], t0[1], t0[2], image, Orange::Color::Red());
-    triangle(t1[0], t1[1], t1[2], image, Orange::Color::White());
-    triangle(t2[0], t2[1], t2[2], image, Orange::Color::Green());
+    switch (renderMode)
+    {   
+    case RenderMode::PointCloud:
+        for(int i=0; i<vertices.size(); ++i)
+        {
+            int x = ((vertices[i].X + 1) / 2 ) * (width-1);
+            int y = ((vertices[i].Y + 1) / 2 ) * (height-1);
+            image.SetColor(x, y, Orange::Color::White());
+        }
+        break;
+    case RenderMode::WireFrame:
+        for(int i=0; i<faces.size(); ++i)
+        {
+            std::vector<int> face = faces[i];
+            for(int j=0; j<3; ++j)
+            {
+                Orange::Vec3f v0 = vertices[face[j]];
+                Orange::Vec3f v1 = vertices[face[(j+1)%3]];
+                int x0 = ((v0.X+1)/2)*(width-1);
+                int y0 = ((v0.Y+1)/2)*(height-1);
+                int x1 = ((v1.X+1)/2)*(width-1);
+                int y1 = ((v1.Y+1)/2)*(height-1);
+                line(x0, y0, x1, y1, image, Orange::Color::White());
+            }
+        }
+        break;
+    case RenderMode::Fill:
+        for(int i=0; i<faces.size(); ++i)
+        {
+            std::vector<int> face = faces[i];
+            Orange::Vec2i screenCoords[3];
+            for (int j = 0; j < 3; j++)
+            {
+                Orange::Vec3f worldCoords = vertices[face[j]];
+                screenCoords[j] = {((worldCoords.X+1)/2)*width,
+                    ((worldCoords.Y+1)/2)*height};
+            }
+            triangle(screenCoords[0], screenCoords[1], screenCoords[2],
+                image, Orange::Color::White());
+        }
+        break;
+    default:
+        break;
+    }  
     
     image.FlipVertical();
-    //image.Save(outputPath);
-    image.Save("triangle.ppm");
+    image.Save(outputPath);
     return 0;
 }
