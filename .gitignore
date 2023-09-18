@@ -1,10 +1,9 @@
 *.o
 *.out
 *.exe
-*.ppm
 
 bin/
 test/
+
 build/
-tinyrenderer/
 .vscode/

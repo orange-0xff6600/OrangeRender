@@ -125,6 +125,7 @@ int argv_process(int argc, char** argv)
             puts("\tRender Modes:");
             puts("\t\t-p\tPoint cloud");
             puts("\t\t-w\tWireframe");
+            puts("\t\t-f\tFlat Shade");
             exit(0);
         }
     }
