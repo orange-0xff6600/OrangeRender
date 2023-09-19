@@ -17,6 +17,7 @@ enum class RenderMode
     PointCloud,
     WireFrame,
     Fill,
+    Flat,
 };
 
 RenderMode renderMode{RenderMode::WireFrame};
@@ -115,6 +116,10 @@ int argv_process(int argc, char** argv)
         {
             renderMode = RenderMode::Fill;
         }
+        else if(!strcmp(argv[i], "-F"))
+        {
+            renderMode = RenderMode::Flat;
+        }
         else if(!strcmp(argv[i], "-h"))
         {
             puts("Usage: render -m [model_path] -o [output_path] <other_args>...");
@@ -125,7 +130,8 @@ int argv_process(int argc, char** argv)
             puts("\tRender Modes:");
             puts("\t\t-p\tPoint cloud");
             puts("\t\t-w\tWireframe");
-            puts("\t\t-f\tFlat Shade");
+            puts("\t\t-f\tfill");
+            puts("\t\t-F\tFlat Shade");
             exit(0);
         }
     }
@@ -141,11 +147,13 @@ int main(int argc, char** argv)
 {
     argv_process(argc, argv);
     
+    Orange::Image image(width, height, Orange::Color::Black());
+
     Orange::Model model(modelPath);
     std::vector<std::vector<int>> faces = model.Faces();
     std::vector<Orange::Vec3f> vertices = model.Vertices();
     
-    Orange::Image image(width, height, Orange::Color::Black());
+    Orange::Vec3f light(0, 0, -1);
 
     switch (renderMode)
     {   
@@ -181,12 +189,34 @@ int main(int argc, char** argv)
             for (int j = 0; j < 3; j++)
             {
                 Orange::Vec3f worldCoords = vertices[face[j]];
-                screenCoords[j] = {((worldCoords.X+1)/2)*width,
-                    ((worldCoords.Y+1)/2)*height};
+                screenCoords[j] = {(int)((worldCoords.X+1)/2)*width,
+                    (int)((worldCoords.Y+1)/2)*height};
             }
             triangle(screenCoords[0], screenCoords[1], screenCoords[2],
                 image, Orange::Color::White());
         }
+        break;
+    case RenderMode::Flat:
+        for(int i=0;i<faces.size(); ++i)
+        {
+            std::vector<int> face = faces[i];
+            Orange::Vec2i screenCoords[3];
+            Orange::Vec3f worldCoords[3];
+            for(int j=0; j<3; ++j)
+            {
+                Orange::Vec3f v = vertices[face[j]];
+                screenCoords[j] = {static_cast<int>(((v.X+1)/2)*width), 
+                    static_cast<int>(((v.Y+1)/2)*height)};
+                worldCoords[j] = v;
+            }
+            Orange::Vec3f normal = Orange::Cross(worldCoords[2]-worldCoords[0], worldCoords[1]-worldCoords[0]);
+            normal.Norm();
+            float intensity = Orange::Dot(normal, light);
+            if (intensity>0)
+                printf("face[%d]: %f\n", i, intensity);
+                triangle(screenCoords[0], screenCoords[1], screenCoords[2], image, 
+                    Orange::Color(intensity*255, intensity * 255, intensity * 255, 255));
+        }       
         break;
     default:
         break;
