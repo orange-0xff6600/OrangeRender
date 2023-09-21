@@ -60,27 +60,70 @@ void line(Orange::Vec2i v0, Orange::Vec2i v1,
     line(v0.X, v0.Y, v1.X, v1.Y, image, color);
 }
 
-void triangle(Orange::Vec2i v0, Orange::Vec2i v1,  Orange::Vec2i v2,
-    Orange::Image &image, Orange::Color color = Orange::Color::White())
+Orange::Vec3f barycentric(Orange::Vec2i v0, Orange::Vec2i v1, Orange::Vec2i v2, Orange::Vec2i p)
 {
-    if(v0.Y==v1.Y && v0.Y==v2.Y) return;
-    if(v0.Y>v1.Y) std::swap(v0, v1);
-    if(v0.Y>v2.Y) std::swap(v0, v2);
-    if(v1.Y>v2.Y) std::swap(v1, v2);
-    int total_height = v2.Y - v0.Y;
-    for(int i=0; i<total_height; ++i)
+    Orange::Vec3f uv1 = Cross(Orange::Vec3f(v2.X - v0.X, v1.X - v0.X, v0.X - p.X),
+        Orange::Vec3f(v2.Y - v0.Y, v1.Y - v0.Y, v0.Y - p.Y));
+    if(std::abs(uv1.Z < 1)) return Orange::Vec3f(-1, 1, 1);
+    return Orange::Vec3f(1.0f - (uv1.X + uv1.Y) / uv1.Z, uv1.Y / uv1.Z, uv1.X / uv1.Z);
+}
+
+void triangle(Orange::Vec2i v0, Orange::Vec2i v1, Orange::Vec2i v2,
+    Orange::Image& image, Orange::Color color = Orange::Color::White())
+{
+    Orange::Vec2i BBoxMin(image.Width() - 1, image.Height() - 1);
+    Orange::Vec2i BBoxMax(0, 0);
+
+    BBoxMin.X = std::min(v0.X, v1.X);
+    BBoxMin.X = std::min(BBoxMin.X, v2.X);
+    BBoxMin.X = std::max(0, BBoxMin.X);
+	
+    BBoxMin.Y = std::min(v0.Y, v1.Y);
+	BBoxMin.Y = std::min(BBoxMin.Y, v2.Y);
+	BBoxMin.Y = std::max(0, BBoxMin.Y);
+
+    BBoxMax.X = std::max(v0.X, v1.X);
+    BBoxMax.X = std::max(BBoxMax.X, v2.X);
+    BBoxMax.X = std::min(image.Width() - 1, BBoxMax.X);
+    
+	BBoxMax.Y = std::max(v0.Y, v1.Y);
+	BBoxMax.Y = std::max(BBoxMax.Y, v2.Y);
+	BBoxMax.Y = std::min(image.Height() - 1, BBoxMax.Y);
+
+    Orange::Vec2i P;
+    for (P.X = BBoxMin.X; P.X <= BBoxMax.X; P.X++)
     {
-        bool second_half = i>(v1.Y-v0.Y) || v1.Y==v0.Y;
-        int segment_height = second_half ? v2.Y-v1.Y : v1.Y-v0.Y;
-        float alpha = (float)i/total_height;
-        float beta = (float)(i-(second_half?v1.Y-v0.Y:0))/segment_height;
-        int x1 = v0.X + (v2.X-v0.X)*alpha;
-        int x2 = second_half?v1.X+(v2.X-v1.X)*beta:v0.X+(v1.X-v0.X)*beta;
-        if(x1>x2) std::swap(x1, x2);
-        for(int j=x1; j<x2; ++j)
-            image.SetColor(j, i+v0.Y, color);
+        for (P.Y = BBoxMin.Y; P.Y <= BBoxMax.Y; P.Y++)
+        {
+            Orange::Vec3f bc = barycentric(v0, v1, v2, P);
+            if(bc.X<0 || bc.Y<0 || bc.Z<0)
+                continue;
+            image.SetColor(P.X, P.Y, color);
+        }
     }
 }
+
+//void triangle(Orange::Vec2i v0, Orange::Vec2i v1,  Orange::Vec2i v2,
+//    Orange::Image &image, Orange::Color color = Orange::Color::White())
+//{
+//    if(v0.Y==v1.Y && v0.Y==v2.Y) return;
+//    if(v0.Y>v1.Y) std::swap(v0, v1);
+//    if(v0.Y>v2.Y) std::swap(v0, v2);
+//    if(v1.Y>v2.Y) std::swap(v1, v2);
+//    int total_height = v2.Y - v0.Y;
+//    for(int i=0; i<total_height; ++i)
+//    {
+//        bool second_half = i>(v1.Y-v0.Y) || v1.Y==v0.Y;
+//        int segment_height = second_half ? v2.Y-v1.Y : v1.Y-v0.Y;
+//        float alpha = (float)i/total_height;
+//        float beta = (float)(i-(second_half?v1.Y-v0.Y:0))/segment_height;
+//        int x1 = v0.X + (v2.X-v0.X)*alpha;
+//        int x2 = second_half?v1.X+(v2.X-v1.X)*beta:v0.X+(v1.X-v0.X)*beta;
+//        if(x1>x2) std::swap(x1, x2);
+//        for(int j=x1; j<x2; ++j)
+//            image.SetColor(j, i+v0.Y, color);
+//    }
+//}
 
 
 // argv:
@@ -220,8 +263,8 @@ int main(int argc, char** argv)
         break;
     default:
         break;
-    }  
-    
+    }
+
     image.FlipVertical();
     image.Save(outputPath);
     return 0;
